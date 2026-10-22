@@ -108,6 +108,9 @@
         }
         input:focus, select:focus, textarea:focus { border-color: #21593F; }
 
+        /* Honeypot (bot trap) */
+        .hp-wrap { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
         /* Submit Button */
         .submit-btn {
             width: 100%;
@@ -360,6 +363,11 @@
                 <textarea id="comment" name="comment" rows="3" maxlength="500" placeholder="Any questions or notes..."></textarea>
             </div>
 
+            <div class="hp-wrap" aria-hidden="true">
+                <label for="hpCheck">Leave this field empty</label>
+                <input type="text" id="hpCheck" name="hp_check" tabindex="-1" autocomplete="off">
+            </div>
+
             <button type="submit" class="submit-btn" id="submitBtn">Submit Registration</button>
         </form>
 
@@ -442,9 +450,35 @@
 
 <script>
   // Apps Script Web App URL
-  const API_URL = "https://script.google.com/macros/s/AKfycbzYlsne0AhanRObwLP-a8KVEICgOIrxTTuWGROkKrXAtXOvPKBnnFA-i2IcZtvsDnlh4A/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbyi0kYuV1KAVXDARhC9AZKzvjgrgiCDrKK1VAWML-q5dmnM0EJVvxJbmVW3cYWHTEjVDQ/exec";
+
+  // ---- Anti-bot token (from server) ----
+  let tokenValue = null;
+  let tokenAt = 0;
+
+  function fetchToken(cb) {
+    fetch(API_URL + "?action=token")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        tokenValue = d.token || null;
+        tokenAt = Date.now();
+        if (cb) cb(!!tokenValue);
+      })
+      .catch(function () { if (cb) cb(false); });
+  }
+
+  // If the token is fresh, proceed immediately; otherwise, generate a new token and wait 3.2 seconds before proceeding.
+  function ensureToken(cb) {
+    const fresh = tokenValue && (Date.now() - tokenAt) < 100 * 60 * 1000;
+    if (fresh) return cb(true);
+    fetchToken(function (ok) {
+      if (!ok) return cb(false);
+      setTimeout(function () { cb(true); }, 3200);
+    });
+  }
 
   window.onload = function () {
+    fetchToken();
     fetch(API_URL + "?action=slots")
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -455,7 +489,7 @@
       });
   };
 
-  // Phone field e shudhu digit
+  // Phone field only digit
   document.getElementById('phoneNumber').addEventListener('input', function () {
     this.value = this.value.replace(/\D/g, '').slice(0, 11);
   });
@@ -478,7 +512,7 @@
     };
 
     // Client-side validation
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._%+\-]*@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/.test(formData.email)) {
       return showError('Please enter a valid email address.');
     }
     if (formData.fullName.length < 2) {
@@ -487,7 +521,7 @@
     if (!formData.department) {
       return showError('Please select your department.');
     }
-    if (!/^[A-Za-z0-9\-]{4,20}$/.test(formData.studentId)) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9\-]{3,19}$/.test(formData.studentId)) {
       return showError('Please enter a valid Student ID.');
     }
     if (formData.phoneNumber && !/^01\d{9}$/.test(formData.phoneNumber)) {
@@ -496,7 +530,14 @@
 
     isSubmitting = true;
     setBtn(true, 'Submitting...');
-    trySubmit(formData, 0);
+    ensureToken(function (ok) {
+      if (!ok) {
+        isSubmitting = false;
+        setBtn(false, 'Submit Registration');
+        return showError('Network error. Please check your connection and try again.');
+      }
+      trySubmit(formData, 0);
+    });
   });
 
   function setBtn(disabled, text) {
@@ -522,13 +563,30 @@
       method: "POST",
       // text/plain rakhte hobe, tahole CORS preflight lagbe na
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(Object.assign({}, formData, {
+        token: tokenValue,
+        hp_check: document.getElementById('hpCheck').value
+      }))
     })
     .then(function (r) { return r.json(); })
     .then(function (response) {
       // Server busy hole auto-retry
       if (response && response.busy && attempt < 4) {
         return retryLater(formData, attempt);
+      }
+
+      // Token expire / mismatch hole notun token niye abar chesta
+      if (response && response.code === 'TOKEN' && attempt < 3) {
+        tokenValue = null;
+        setBtn(true, 'Please wait...');
+        return ensureToken(function (ok) {
+          if (!ok) {
+            isSubmitting = false;
+            setBtn(false, 'Submit Registration');
+            return showError('Network error. Please check your connection and try again.');
+          }
+          trySubmit(formData, attempt + 1);
+        });
       }
 
       isSubmitting = false;
