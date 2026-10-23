@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registration Form | Freshers Reception DUET</title>
 
+    <!-- Pinned versions. html2canvas is used for the screenshot button. -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- [1] Cloudflare Turnstile (bot check). Rendered explicitly from the script below. -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -27,22 +30,10 @@
         }
 
         /* Header */
-        .header {
-            background-color: #21593F;
-            color: #ffffff;
-            padding: 28px 20px;
-            text-align: center;
-        }
+        .header { background-color: #21593F; color: #ffffff; padding: 28px 20px; text-align: center; }
         .logo {
-            width: 75px;
-            height: 75px;
-            background-color: #ffffff;
-            border-radius: 50%;
-            margin: 0 auto 12px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 75px; height: 75px; background-color: #ffffff; border-radius: 50%;
+            margin: 0 auto 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
         .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -51,239 +42,144 @@
 
         /* Main Content */
         .content { padding: 25px 25px 20px; }
-        .session-title {
-            text-align: center;
-            color: #222;
-            font-size: 19px;
-            font-weight: 700;
-            line-height: 1.4;
-            margin-bottom: 18px;
-        }
+        .session-title { text-align: center; color: #222; font-size: 19px; font-weight: 700; line-height: 1.4; margin-bottom: 18px; }
         .session-meta {
-            display: flex;
-            justify-content: space-between;
-            background-color: #f8faf9;
-            border: 1px solid #e1ebe5;
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin-bottom: 18px;
-            font-size: 12px;
-            color: #444;
+            display: flex; justify-content: space-between; background-color: #f8faf9; border: 1px solid #e1ebe5;
+            padding: 10px 14px; border-radius: 8px; margin-bottom: 18px; font-size: 12px; color: #444;
         }
 
         /* Alert / Error Message */
-        #alert-box {
-            display: none;
-            background-color: #fde8e8;
-            color: #9b1c1c;
-            border: 1px solid #f8b4b4;
-            padding: 12px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-bottom: 18px;
-            text-align: center;
+        #alert-box, #status-alert {
+            display: none; background-color: #fde8e8; color: #9b1c1c; border: 1px solid #f8b4b4;
+            padding: 12px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px; text-align: center;
         }
 
-        .form-heading {
-            text-align: center;
-            font-size: 17px;
-            font-weight: bold;
-            color: #333;
-            margin-top: 10px;
-            margin-bottom: 4px;
-        }
+        .form-heading { text-align: center; font-size: 17px; font-weight: bold; color: #333; margin-top: 10px; margin-bottom: 4px; }
         .slots-badge { text-align: center; font-size: 12px; color: #777; margin-bottom: 20px; }
 
         /* Form Controls */
         .form-group { margin-bottom: 14px; }
         label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; color: #333; }
         input, select, textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
+            width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px;
+            font-size: 14px; outline: none; transition: border-color 0.2s;
         }
         input:focus, select:focus, textarea:focus { border-color: #21593F; }
 
-        /* Honeypot (bot trap) */
+        /* Honeypot (bot trap) - off-screen, not display:none, so bots still fill it */
         .hp-wrap { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+        /* [1] Turnstile widget area (only shown when a site key is configured) */
+        .ts-wrap { display: none; margin-bottom: 8px; text-align: center; min-height: 65px; }
 
         /* Submit Button */
         .submit-btn {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #21593F, #2d7d58);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 3px 8px rgba(33, 89, 63, 0.3);
-            transition: all 0.2s;
-            margin-top: 10px;
+            width: 100%; padding: 12px; background: linear-gradient(135deg, #21593F, #2d7d58); color: white;
+            border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 3px 8px rgba(33, 89, 63, 0.3); transition: all 0.2s; margin-top: 10px;
         }
         .submit-btn:hover { background: linear-gradient(135deg, #1b4b34, #246849); }
         .submit-btn:disabled { background: #888; cursor: not-allowed; box-shadow: none; }
+        .form-hint { text-align: center; font-size: 11.5px; color: #777; line-height: 1.5; margin-top: 10px; }
+
+        .form-hint a { color: #21593F; font-weight: 600; }
+
+        /* Registration status panel */
+        #status-container { display: none; padding: 25px 25px 20px; }
+        .status-title { text-align: center; font-size: 18px; font-weight: bold; color: #222; margin-bottom: 6px; }
+        .status-sub { text-align: center; font-size: 12.5px; color: #666; margin-bottom: 10px; line-height: 1.5; }
+        .status-result { margin-top: 16px; }
+        .status-none { background: #fff7e6; border: 1px solid #f5d38a; color: #7a5200; border-radius: 8px; padding: 12px; font-size: 13px; text-align: center; line-height: 1.5; }
+        .back-link { display: block; text-align: center; margin-top: 16px; font-size: 13px; color: #21593F; font-weight: 600; text-decoration: none; }
 
         /* Footer */
-        .footer {
-            text-align: center;
-            margin-top: 18px;
-            padding-top: 12px;
-            border-top: 1px solid #f0f0f0;
-            font-size: 12px;
-            color: #666;
-        }
+        .footer { text-align: center; margin-top: 18px; padding-top: 12px; border-top: 1px solid #f0f0f0; font-size: 12px; color: #666; }
         .footer a { color: #21593F; text-decoration: none; font-weight: 600; }
 
         /* Success / Digital Registration Card Window */
         #success-window { display: none; padding: 25px 20px; text-align: center; }
         .success-checkmark {
-            width: 50px;
-            height: 50px;
-            background-color: #eaf6ec;
-            color: #28a745;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin: 0 auto 10px;
+            width: 50px; height: 50px; background-color: #eaf6ec; color: #28a745; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 10px;
             border: 2px solid #a3d9ad;
         }
         .success-title { font-size: 19px; color: #222; font-weight: bold; margin-bottom: 5px; }
         .success-sub { font-size: 12px; color: #666; margin-bottom: 15px; }
-
-        .btn-action-group {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
+        /* [4] Update-mode banner */
+        .mode-note {
+            display: none; background: #eef6ff; border: 1px solid #b6d4fe; color: #1e4e8c;
+            padding: 10px 12px; border-radius: 8px; font-size: 12.5px; margin-bottom: 15px; line-height: 1.5;
         }
+
+        .btn-action-group { display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
         .btn-action {
-            padding: 9px 18px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
+            padding: 9px 18px; font-size: 13px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
         }
         .btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-print { background-color: #21593F; color: #ffffff; }
         .btn-print:hover { background-color: #17402d; }
         .btn-screenshot { background-color: #0284c7; color: #ffffff; }
         .btn-screenshot:hover { background-color: #0369a1; }
+        .btn-close { background-color: #e5e7eb; color: #222; }
 
         /* Reg Card Box */
         .reg-card {
-            background-color: #f7faf8;
-            border: 1px solid #287a4a;
-            border-radius: 8px;
-            overflow: hidden;
-            text-align: left;
-            margin-bottom: 18px;
+            background-color: #f7faf8; border: 1px solid #287a4a; border-radius: 8px; overflow: hidden;
+            text-align: left; margin-bottom: 18px;
         }
-        .card-top {
-            background-color: #287a4a;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-        }
+        .card-top { background-color: #287a4a; color: white; padding: 10px; text-align: center; font-size: 14px; font-weight: bold; letter-spacing: 0.5px; }
         .card-body { padding: 15px; }
-        .reg-id-box {
-            text-align: center;
-            margin-bottom: 15px;
-            border-bottom: 1px dashed #ccd9d1;
-            padding-bottom: 12px;
-        }
+        .reg-id-box { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #ccd9d1; padding-bottom: 12px; }
         .reg-id-title { font-size: 11px; font-weight: bold; color: #555; letter-spacing: 0.5px; }
         .reg-id-val { font-size: 20px; font-weight: bold; color: #21593F; margin-top: 2px; }
         .card-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
         .card-table td { padding: 6px 4px; vertical-align: top; }
         .card-table td.label-col { color: #555; width: 32%; font-weight: 500; }
         .card-table td.val-col { color: #111; font-weight: bold; text-align: right; word-break: break-word; }
-        .platform-meet {
-            text-align: center;
-            margin-top: 15px;
-            padding-top: 12px;
-            border-top: 1px dashed #ccd9d1;
-        }
-        .meet-badge {
-            display: inline-block;
-            background: #e8f0fe;
-            color: #1a73e8;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
+        .platform-meet { text-align: center; margin-top: 15px; padding-top: 12px; border-top: 1px dashed #ccd9d1; }
+        .meet-badge { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 4px; }
         .meet-note { font-size: 11px; color: #777; }
 
-        .info-notice {
-            font-size: 12px;
-            color: #555;
-            line-height: 1.5;
-            margin-bottom: 15px;
-            text-align: center;
-        }
+        .info-notice { font-size: 12px; color: #555; line-height: 1.5; margin-bottom: 15px; text-align: center; }
         .facebook-btn {
-            display: inline-block;
-            background-color: #21593F;
-            color: white;
-            text-decoration: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            transition: background-color 0.2s;
+            display: inline-block; background-color: #21593F; color: white; text-decoration: none;
+            padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: bold; transition: background-color 0.2s;
         }
         .facebook-btn:hover { background-color: #1b4b34; }
 
+        /* [4] Screenshot fallback overlay */
+        #shot-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.78);
+            align-items: center; justify-content: center; padding: 16px; overflow: auto;
+        }
+        .shot-box { background: #fff; border-radius: 10px; padding: 14px; max-width: 520px; width: 100%; text-align: center; }
+        .shot-hint { font-size: 12.5px; color: #333; margin-bottom: 10px; line-height: 1.5; }
+        #shot-img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 6px; -webkit-touch-callout: default; }
+        .shot-actions { display: flex; justify-content: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+        /* [4] PRINT / "Save as PDF": only the card is printed, with colours preserved. */
+        @page { margin: 12mm; }
         @media print {
+            html, body { background: #ffffff !important; }
             body * { visibility: hidden; }
-            .reg-card, .reg-card * { visibility: visible; }
+            #shot-overlay { display: none !important; }
+            .reg-card, .reg-card * {
+                visibility: visible;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
             .reg-card {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100% !important;
-                margin: 0 !important;
-                border: 1px solid #333 !important;
-                box-shadow: none !important;
+                position: absolute; left: 0; top: 0; width: 100% !important; margin: 0 !important;
+                border: 1px solid #333 !important; box-shadow: none !important; break-inside: avoid;
             }
         }
 
-        @media (max-width: 768px) {
-            .container { max-width: 90%; }
-        }
+        @media (max-width: 768px) { .container { max-width: 90%; } }
 
         @media (max-width: 600px) {
-            body {
-                padding: 0;
-                margin: 0;
-                display: block;
-                background-color: #ffffff;
-            }
-            .container {
-                width: 100% !important;
-                max-width: 100% !important;
-                border-radius: 0 !important;
-                box-shadow: none !important;
-                min-height: 100vh;
-            }
+            body { padding: 0; margin: 0; display: block; background-color: #ffffff; }
+            .container { width: 100% !important; max-width: 100% !important; border-radius: 0 !important; box-shadow: none !important; min-height: 100vh; }
             .content { padding: 20px 16px; }
             .header { padding: 24px 16px; border-radius: 0; }
             .session-meta { flex-direction: column; gap: 8px; text-align: center; }
@@ -350,12 +246,12 @@
 
             <div class="form-group">
                 <label for="studentId">Student ID *</label>
-                <input type="text" id="studentId" name="studentId" required maxlength="20" autocomplete="off" placeholder="Enter your Student ID">
+                <input type="text" inputmode="numeric" id="studentId" name="studentId" required maxlength="10" autocomplete="off" placeholder="Enter your Student ID (numbers only)">
             </div>
 
             <div class="form-group">
-                <label for="phoneNumber">Phone Number</label>
-                <input type="tel" inputmode="numeric" maxlength="11" id="phoneNumber" name="phoneNumber" autocomplete="tel" placeholder="01XXXXXXXXX">
+                <label for="phoneNumber">Phone Number *</label>
+                <input type="tel" inputmode="numeric" maxlength="11" id="phoneNumber" name="phoneNumber" required autocomplete="tel" placeholder="01XXXXXXXXX">
             </div>
 
             <div class="form-group">
@@ -363,17 +259,51 @@
                 <textarea id="comment" name="comment" rows="3" maxlength="500" placeholder="Any questions or notes..."></textarea>
             </div>
 
+            <!-- Honeypot -->
             <div class="hp-wrap" aria-hidden="true">
                 <label for="hpCheck">Leave this field empty</label>
                 <input type="text" id="hpCheck" name="hp_check" tabindex="-1" autocomplete="off">
             </div>
 
+            <!-- [1] Turnstile widget mounts here -->
+            <div class="ts-wrap" id="turnstile-wrap"><div id="turnstile-box"></div></div>
+
             <button type="submit" class="submit-btn" id="submitBtn">Submit Registration</button>
+            <p class="form-hint">Already registered? <a href="#" onclick="showStatus(); return false;">Check your registration status</a></p>
         </form>
 
         <div class="footer">
             <p>Bangladesh Islami Chhatrashibir, DUET Branch</p>
-            <p><a href="https://duetshibir.org/" target="_blank">duetshibir.org</a></p>
+            <p><a href="https://duetshibir.org/" target="_blank" rel="noopener">duetshibir.org</a></p>
+        </div>
+    </div>
+
+    <!-- Registration status check: Email + Student ID -> shows the card -->
+    <div id="status-container">
+        <div class="status-title">Check Registration Status</div>
+        <div class="status-sub">Enter your Email and Student ID to view your registration card.</div>
+        <div class="slots-badge" id="statusSlots"></div>
+
+        <div id="status-alert"></div>
+
+        <div class="form-group">
+            <label for="statusEmail">Email Address</label>
+            <input type="email" id="statusEmail" maxlength="120" autocomplete="email" placeholder="Enter your email address">
+        </div>
+        <div class="form-group">
+            <label for="statusSid">Student ID</label>
+            <input type="text" inputmode="numeric" id="statusSid" maxlength="10" autocomplete="off" placeholder="Enter your Student ID (numbers only)">
+        </div>
+
+        <div class="ts-wrap" id="ts-status-wrap"><div id="ts-status-box"></div></div>
+
+        <button type="button" class="submit-btn" id="statusBtn" onclick="checkStatus()">Check Status</button>
+        <div class="status-result" id="status-result"></div>
+        <a href="#" class="back-link" onclick="hideStatus(); return false;">← Back to registration form</a>
+
+        <div class="footer">
+            <p>Bangladesh Islami Chhatrashibir, DUET Branch</p>
+            <p><a href="https://duetshibir.org/" target="_blank" rel="noopener">duetshibir.org</a></p>
         </div>
     </div>
 
@@ -382,9 +312,10 @@
         <div class="success-checkmark">✓</div>
         <div class="success-title">Registration Successful!</div>
         <div class="success-sub">Your registration has been successfully completed. Please keep your Registration ID.</div>
+        <div class="mode-note" id="mode-note"></div>
 
         <div class="btn-action-group">
-            <button type="button" class="btn-action btn-print" onclick="printCard()">🖨️ Print</button>
+            <button type="button" class="btn-action btn-print" onclick="printCard()">🖨️ Print / Save PDF</button>
             <button type="button" class="btn-action btn-screenshot" id="screenshotBtn" onclick="captureCard()">📸 Screenshot</button>
         </div>
 
@@ -397,34 +328,13 @@
                 </div>
 
                 <table class="card-table">
-                    <tr>
-                        <td class="label-col">Event</td>
-                        <td class="val-col">DUET Freshers' Orientation &amp; Reception 2025–26</td>
-                    </tr>
-                    <tr>
-                        <td class="label-col">Date</td>
-                        <td class="val-col">December 2026</td>
-                    </tr>
-                    <tr>
-                        <td class="label-col">Time</td>
-                        <td class="val-col">9:00 AM - 2:00 PM</td>
-                    </tr>
-                    <tr>
-                        <td class="label-col">Location</td>
-                        <td class="val-col">Shahid Shakil Parvez Auditorium, DUET</td>
-                    </tr>
-                    <tr>
-                        <td class="label-col">Name</td>
-                        <td class="val-col" id="disp-name">-</td>
-                    </tr>
-                    <tr>
-                        <td class="label-col">Department</td>
-                        <td class="val-col" id="disp-dept">-</td>
-                    </tr>
-                    <tr>
-                        <td class="label-col">Student ID</td>
-                        <td class="val-col" id="disp-studentId">-</td>
-                    </tr>
+                    <tr><td class="label-col">Event</td><td class="val-col">DUET Freshers' Orientation &amp; Reception 2025–26</td></tr>
+                    <tr><td class="label-col">Date</td><td class="val-col">December 2026</td></tr>
+                    <tr><td class="label-col">Time</td><td class="val-col">9:00 AM - 2:00 PM</td></tr>
+                    <tr><td class="label-col">Location</td><td class="val-col">Shahid Shakil Parvez Auditorium, DUET</td></tr>
+                    <tr><td class="label-col">Name</td><td class="val-col" id="disp-name">-</td></tr>
+                    <tr><td class="label-col">Department</td><td class="val-col" id="disp-dept">-</td></tr>
+                    <tr><td class="label-col">Student ID</td><td class="val-col" id="disp-studentId">-</td></tr>
                 </table>
 
                 <div class="platform-meet">
@@ -439,67 +349,138 @@
             <p>Bring your Registration ID on the event day.</p>
         </div>
 
-        <a href="https://www.facebook.com/bicsduet/" target="_blank" class="facebook-btn">Visit DUET Shibir Facebook Page</a>
+        <a href="https://www.facebook.com/bicsduet/" target="_blank" rel="noopener" class="facebook-btn">Visit DUET Shibir Facebook Page</a>
 
         <div class="footer" style="margin-top: 25px;">
             <p>Bangladesh Islami Chhatrashibir, DUET Branch</p>
-            <p><a href="https://duetshibir.org/" target="_blank">duetshibir.org</a></p>
+            <p><a href="https://duetshibir.org/" target="_blank" rel="noopener">duetshibir.org</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- [4] Screenshot fallback overlay -->
+<div id="shot-overlay" role="dialog" aria-modal="true">
+    <div class="shot-box">
+        <p class="shot-hint">Press and hold the image, then choose <b>Save Image</b> / <b>Add to Photos</b>.</p>
+        <img id="shot-img" alt="Registration card">
+        <div class="shot-actions">
+            <button type="button" class="btn-action btn-print" onclick="printCard()">🖨️ Print / Save PDF</button>
+            <button type="button" class="btn-action btn-close" onclick="closeShot()">Close</button>
         </div>
     </div>
 </div>
 
 <script>
-  // Apps Script Web App URL
-  const API_URL = "https://script.google.com/macros/s/AKfycbyi0kYuV1KAVXDARhC9AZKzvjgrgiCDrKK1VAWML-q5dmnM0EJVvxJbmVW3cYWHTEjVDQ/exec";
+  /* ==================== CONFIG ==================== */
+  const API_URL = "https://script.google.com/macros/s/AKfycbzYlsne0AhanRObwLP-a8KVEICgOIrxTTuWGROkKrXAtXOvPKBnnFA-i2IcZtvsDnlh4A/exec";
 
-  // ---- Anti-bot token (from server) ----
-  let tokenValue = null;
-  let tokenAt = 0;
+  // [1] Must equal SHARED_SECRET in Code.gs. This file is public, so it is NOT truly secret:
+  // it only stops blind spam. Turnstile (below) is the real bot check.
+  const API_KEY = "CHANGE_ME_TO_A_LONG_RANDOM_STRING";
 
-  function fetchToken(cb) {
-    fetch(API_URL + "?action=token")
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        tokenValue = d.token || null;
-        tokenAt = Date.now();
-        if (cb) cb(!!tokenValue);
-      })
-      .catch(function () { if (cb) cb(false); });
+  // [1] Cloudflare Turnstile site key (public by design). Leave the placeholder to disable the widget.
+  const TURNSTILE_SITE_KEY = "PASTE_TURNSTILE_SITE_KEY_HERE";
+  const TURNSTILE_ENABLED = TURNSTILE_SITE_KEY.indexOf("PASTE_") !== 0;
+
+  // Student ID: digits only, 6-10 long. Keep in sync with STUDENT_ID_PATTERN in Code.gs.
+  // (If DUET IDs have a fixed length, e.g. 7 digits, use /^[0-9]{7}$/ in BOTH files.)
+  const STUDENT_ID_RE = /^[0-9]{6,10}$/;
+  const EMAIL_RE = /^[A-Za-z0-9][A-Za-z0-9._%+\-]*@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/;
+  const PHONE_RE = /^01\d{9}$/;
+
+  /* ==================== [1] CLIENT ID ==================== */
+  function randomId(n) {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let out = "";
+    const c = window.crypto || window.msCrypto;
+    if (c && c.getRandomValues) {
+      const a = new Uint8Array(n);
+      c.getRandomValues(a);
+      for (let i = 0; i < n; i++) out += chars[a[i] % chars.length];
+    } else {
+      for (let i = 0; i < n; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return out;
   }
+  function getClientId() {
+    let id = null;
+    try { id = localStorage.getItem("duet_cid"); } catch (e) {}
+    if (!id || !/^[a-z0-9]{16,40}$/.test(id)) {
+      id = randomId(24);
+      try { localStorage.setItem("duet_cid", id); } catch (e) {}
+    }
+    return id;
+  }
+  const CID = getClientId();
 
-  // If the token is fresh, proceed immediately; otherwise, generate a new token and wait 3.2 seconds before proceeding.
-  function ensureToken(cb) {
-    const fresh = tokenValue && (Date.now() - tokenAt) < 100 * 60 * 1000;
-    if (fresh) return cb(true);
-    fetchToken(function (ok) {
-      if (!ok) return cb(false);
-      setTimeout(function () { cb(true); }, 3200);
+  /* ==================== [1] TURNSTILE ==================== */
+  let tsWidgetId = null;
+  let tsToken = "";
+  let tsTries = 0;
+
+  function initTurnstile() {
+    if (!TURNSTILE_ENABLED) return;
+    document.getElementById('turnstile-wrap').style.display = 'block';
+    if (!window.turnstile) {                       // api.js is still loading
+      if (++tsTries < 60) setTimeout(initTurnstile, 250);
+      return;
+    }
+    tsWidgetId = window.turnstile.render('#turnstile-box', {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: function (t) { tsToken = t; },
+      'expired-callback': function () { tsToken = ""; },
+      'error-callback': function () { tsToken = ""; }
     });
   }
+  // Tokens are single-use: always get a fresh one after each final server answer.
+  function resetTurnstile() {
+    tsToken = "";
+    if (TURNSTILE_ENABLED && window.turnstile && tsWidgetId !== null) {
+      try { window.turnstile.reset(tsWidgetId); } catch (e) {}
+    }
+  }
 
-  window.onload = function () {
-    fetchToken();
+  /* ==================== SLOTS ==================== */
+  // Shows remaining slots on the registration form AND on the status page.
+  function loadSlots() {
     fetch(API_URL + "?action=slots")
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        document.getElementById('slotsBadge').innerText = d.remaining + " registration slot(s) remaining";
+        const n = Number(d.remaining);
+        const t = isNaN(n) ? "" : (n > 0 ? n + " registration slot(s) remaining" : "All registration slots are full");
+        document.getElementById('slotsBadge').innerText = t;
+        document.getElementById('statusSlots').innerText = t;
       })
       .catch(function () {
         document.getElementById('slotsBadge').innerText = "";
+        document.getElementById('statusSlots').innerText = "";
       });
+  }
+
+  /* ==================== PAGE LOAD ==================== */
+  window.onload = function () {
+    initTurnstile();
+    loadSlots();
   };
 
-  // Phone field only digit
+  // Phone field: digits only
   document.getElementById('phoneNumber').addEventListener('input', function () {
     this.value = this.value.replace(/\D/g, '').slice(0, 11);
   });
 
+  // Student ID fields: digits only
+  ['studentId', 'statusSid'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
+  });
+
+  /* ==================== SUBMIT ==================== */
   let isSubmitting = false;
 
   document.getElementById('regForm').addEventListener('submit', function (e) {
     e.preventDefault();
     if (isSubmitting) return;
-
     document.getElementById('alert-box').style.display = 'none';
 
     const formData = {
@@ -511,33 +492,32 @@
       comment: document.getElementById('comment').value.trim()
     };
 
-    // Client-side validation
-    if (!/^[A-Za-z0-9][A-Za-z0-9._%+\-]*@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/.test(formData.email)) {
+    // Client-side validation (the server validates again)
+    if (!EMAIL_RE.test(formData.email)) {
       return showError('Please enter a valid email address.');
     }
-    if (formData.fullName.length < 2) {
-      return showError('Please enter your full name.');
+    if (formData.fullName.length < 2) return showError('Please enter your full name.');
+    if (!formData.department) return showError('Please select your department.');
+    if (!STUDENT_ID_RE.test(formData.studentId)) return showError('Please enter a valid Student ID (numbers only).');
+    // Phone number is REQUIRED
+    if (!PHONE_RE.test(formData.phoneNumber)) {
+      return showError('Please enter a valid 11-digit phone number (01XXXXXXXXX).');
     }
-    if (!formData.department) {
-      return showError('Please select your department.');
+    if (TURNSTILE_ENABLED && !tsToken) {
+      return showError('Please complete the verification check below, then submit again.');
     }
-    if (!/^[A-Za-z0-9][A-Za-z0-9\-]{3,19}$/.test(formData.studentId)) {
-      return showError('Please enter a valid Student ID.');
-    }
-    if (formData.phoneNumber && !/^01\d{9}$/.test(formData.phoneNumber)) {
-      return showError('Phone number must be 11 digits (01XXXXXXXXX).');
-    }
+
+    // [1] Build the payload ONCE: the same token is reused by network-error retries
+    const payload = Object.assign({}, formData, {
+      key: API_KEY,
+      cid: CID,
+      ts: tsToken,
+      hp_check: document.getElementById('hpCheck').value
+    });
 
     isSubmitting = true;
     setBtn(true, 'Submitting...');
-    ensureToken(function (ok) {
-      if (!ok) {
-        isSubmitting = false;
-        setBtn(false, 'Submit Registration');
-        return showError('Network error. Please check your connection and try again.');
-      }
-      trySubmit(formData, 0);
-    });
+    trySubmit(payload, formData, 0);
   });
 
   function setBtn(disabled, text) {
@@ -553,98 +533,378 @@
     alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function retryLater(formData, attempt) {
-    setBtn(true, 'Please wait...');
-    setTimeout(function () { trySubmit(formData, attempt + 1); }, 1500 + Math.random() * 2500);
+  function finishSubmit() {
+    isSubmitting = false;
+    setBtn(false, 'Submit Registration');
   }
 
-  function trySubmit(formData, attempt) {
+  function retryLater(payload, formData, attempt) {
+    setBtn(true, 'Please wait...');
+    setTimeout(function () { trySubmit(payload, formData, attempt + 1); }, 1500 + Math.random() * 2500);
+  }
+
+  function trySubmit(payload, formData, attempt) {
     fetch(API_URL, {
       method: "POST",
-      // text/plain rakhte hobe, tahole CORS preflight lagbe na
+      // text/plain avoids a CORS preflight, which Apps Script cannot answer
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(Object.assign({}, formData, {
-        token: tokenValue,
-        hp_check: document.getElementById('hpCheck').value
-      }))
+      body: JSON.stringify(payload)
     })
     .then(function (r) { return r.json(); })
-    .then(function (response) {
-      // Server busy hole auto-retry
-      if (response && response.busy && attempt < 4) {
-        return retryLater(formData, attempt);
-      }
+    .then(
+      // Success and error handlers are separate on purpose: an exception while drawing the
+      // card must never trigger a network retry (which would re-submit the form).
+      function (response) {
+        // Server busy (lock queue): auto-retry
+        if (response && response.busy && attempt < 4) return retryLater(payload, formData, attempt);
 
-      // Token expire / mismatch hole notun token niye abar chesta
-      if (response && response.code === 'TOKEN' && attempt < 3) {
-        tokenValue = null;
-        setBtn(true, 'Please wait...');
-        return ensureToken(function (ok) {
-          if (!ok) {
-            isSubmitting = false;
-            setBtn(false, 'Submit Registration');
-            return showError('Network error. Please check your connection and try again.');
-          }
-          trySubmit(formData, attempt + 1);
-        });
-      }
+        finishSubmit();
+        resetTurnstile();
 
-      isSubmitting = false;
-      setBtn(false, 'Submit Registration');
-
-      if (response && response.success) {
-        document.getElementById('disp-regId').innerText = response.regId;
-        document.getElementById('disp-name').innerText = formData.fullName;
-        document.getElementById('disp-dept').innerText = formData.department;
-        document.getElementById('disp-studentId').innerText = formData.studentId.toUpperCase();
-
-        document.getElementById('form-container').style.display = 'none';
-        document.getElementById('success-window').style.display = 'block';
-        window.scrollTo(0, 0);
-      } else {
-        showError((response && response.message) || 'Something went wrong. Please try again.');
+        if (response && response.success) {
+          showCard(response, formData);
+        } else {
+          showError((response && response.message) || 'Something went wrong. Please try again.');
+        }
+      },
+      function () {
+        // Network error: retry with the same payload.
+        if (attempt < 3) return retryLater(payload, formData, attempt);
+        finishSubmit();
+        resetTurnstile();
+        showError('Network error. Please check your connection and try again.');
       }
-    })
-    .catch(function () {
-      // Net/network error: auto-retry. Server duplicate hole ager card-i dey, tai safe.
-      if (attempt < 3) {
-        return retryLater(formData, attempt);
-      }
-      isSubmitting = false;
-      setBtn(false, 'Submit Registration');
-      showError('Network error. Please check your connection and try again.');
-    });
+    );
   }
 
+  // Fill and show the card (used after registration AND after a successful status check).
+  function showCard(response, formData) {
+    document.getElementById('disp-regId').innerText = response.regId;
+    document.getElementById('disp-name').innerText = response.name || formData.fullName;
+    document.getElementById('disp-dept').innerText = response.department || formData.department;
+    document.getElementById('disp-studentId').innerText = (response.studentId || formData.studentId).toUpperCase();
+
+    const note = document.getElementById('mode-note');
+    if (response.existing) {
+      note.innerText = response.updated
+        ? 'You were already registered. Your details have been updated.'
+        : 'You were already registered. Here is your existing card.';
+      note.style.display = 'block';
+    } else {
+      note.style.display = 'none';
+    }
+
+    document.getElementById('form-container').style.display = 'none';
+    document.getElementById('status-container').style.display = 'none';
+    document.getElementById('success-window').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  /* ==================== REGISTRATION STATUS CHECK ====================
+     Email + Student ID (both required). If they match a registration, the full card is shown
+     with the Print / Screenshot buttons. Uses its own Turnstile widget. */
+  let tsStatusWidgetId = null;
+  let tsStatusToken = "";
+  let tsStatusTries = 0;
+  let isChecking = false;
+
+  function initStatusTurnstile() {
+    if (!TURNSTILE_ENABLED || tsStatusWidgetId !== null) return;
+    document.getElementById('ts-status-wrap').style.display = 'block';
+    if (!window.turnstile) {                       // api.js still loading
+      if (++tsStatusTries < 60) setTimeout(initStatusTurnstile, 250);
+      return;
+    }
+    tsStatusWidgetId = window.turnstile.render('#ts-status-box', {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: function (t) { tsStatusToken = t; },
+      'expired-callback': function () { tsStatusToken = ""; },
+      'error-callback': function () { tsStatusToken = ""; }
+    });
+  }
+  function resetStatusTurnstile() {
+    tsStatusToken = "";
+    if (TURNSTILE_ENABLED && window.turnstile && tsStatusWidgetId !== null) {
+      try { window.turnstile.reset(tsStatusWidgetId); } catch (e) {}
+    }
+  }
+
+  function showStatus() {
+    document.getElementById('form-container').style.display = 'none';
+    document.getElementById('status-container').style.display = 'block';
+    document.getElementById('status-alert').style.display = 'none';
+    document.getElementById('status-result').textContent = '';
+    loadSlots();
+    initStatusTurnstile();
+    window.scrollTo(0, 0);
+    document.getElementById('statusEmail').focus();
+  }
+  function hideStatus() {
+    document.getElementById('status-container').style.display = 'none';
+    document.getElementById('form-container').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  function showStatusError(msg) {
+    const el = document.getElementById('status-alert');
+    el.innerText = msg;
+    el.style.display = 'block';
+  }
+  function setStatusBtn(disabled, text) {
+    const b = document.getElementById('statusBtn');
+    b.disabled = disabled;
+    b.innerText = text;
+  }
+  function finishCheck() {
+    isChecking = false;
+    setStatusBtn(false, 'Check Status');
+    resetStatusTurnstile();                        // tokens are single-use
+  }
+
+  ['statusEmail', 'statusSid'].forEach(function (id) {
+    document.getElementById(id).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); checkStatus(); }
+    });
+  });
+
+  function checkStatus() {
+    if (isChecking) return;
+    document.getElementById('status-alert').style.display = 'none';
+    document.getElementById('status-result').textContent = '';
+
+    const email = document.getElementById('statusEmail').value.trim();
+    const sid = document.getElementById('statusSid').value.trim();
+
+    if (!EMAIL_RE.test(email)) return showStatusError('Please enter a valid email address.');
+    if (!STUDENT_ID_RE.test(sid)) return showStatusError('Please enter a valid Student ID (numbers only).');
+    if (TURNSTILE_ENABLED && !tsStatusToken) {
+      return showStatusError('Please complete the verification check below, then try again.');
+    }
+
+    isChecking = true;
+    setStatusBtn(true, 'Checking...');
+
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: 'card', email: email, studentId: sid, key: API_KEY, cid: CID, ts: tsStatusToken, hp_check: '' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(
+      function (response) {
+        finishCheck();
+        if (response && response.success) {
+          if (response.found) {
+            response.existing = true;
+            response.updated = false;
+            showCard(response, { fullName: response.name, department: response.department, studentId: response.studentId });
+          } else {
+            renderNotFound();
+          }
+        } else {
+          showStatusError((response && response.message) || 'Something went wrong. Please try again.');
+        }
+      },
+      function () {
+        finishCheck();
+        showStatusError('Network error. Please check your connection and try again.');
+      }
+    );
+  }
+
+  function renderNotFound() {
+    const box = document.getElementById('status-result');
+    box.textContent = '';
+    const none = document.createElement('div');
+    none.className = 'status-none';
+    none.textContent = 'No registration found for this Email and Student ID. Please check them and try again, or go back and register.';
+    box.appendChild(none);
+  }
+
+  /* ==================== [4] PRINT / SAVE AS PDF ==================== */
   function printCard() {
+    // The browser uses document.title as the default PDF file name.
+    const oldTitle = document.title;
+    const regId = document.getElementById('disp-regId').innerText || 'Card';
+    document.title = 'Registration Card - ' + regId;
+    const restore = function () { document.title = oldTitle; window.removeEventListener('afterprint', restore); };
+    window.addEventListener('afterprint', restore);
     window.print();
   }
 
+  /* ==================== [4] SCREENSHOT WITH FALLBACKS ====================
+     Order: html2canvas @2x  ->  html2canvas @1x (foreignObject)  ->  hand-drawn canvas. */
   function captureCard() {
     const card = document.getElementById('regCard');
     const btn = document.getElementById('screenshotBtn');
     const originalText = btn.innerText;
-
     btn.disabled = true;
     btn.innerText = "Saving...";
 
-    html2canvas(card, {
+    const settle = function () { btn.disabled = false; btn.innerText = originalText; };
+
+    const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    fontsReady
+      .then(function () { return new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); }); })
+      .then(function () { return renderWithHtml2canvas(card, {}); })               // attempt 1: high-DPI
+      .then(requireNonBlank)
+      .catch(function () {
+        return renderWithHtml2canvas(card, { scale: 1, foreignObjectRendering: true }) // attempt 2
+          .then(requireNonBlank);
+      })
+      .catch(function () { return drawCardCanvas(); })                               // attempt 3: draw it ourselves
+      .then(deliverCanvas)
+      .catch(function () {
+        alert("Screenshot is not supported in this browser. Please use the Print / Save PDF button instead.");
+      })
+      .then(settle);
+  }
+
+  function renderWithHtml2canvas(card, over) {
+    if (typeof html2canvas !== 'function') return Promise.reject(new Error('html2canvas not loaded'));
+    const opts = Object.assign({
       scale: 2,
       useCORS: true,
-      backgroundColor: "#ffffff"
-    }).then(function (canvas) {
-      const link = document.createElement('a');
-      const regId = document.getElementById('disp-regId').innerText || 'RegistrationCard';
-      link.download = 'reg_card_' + regId + '.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      btn.disabled = false;
-      btn.innerText = originalText;
-    }).catch(function (err) {
-      alert("Screenshot failed: " + err);
-      btn.disabled = false;
-      btn.innerText = originalText;
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      imageTimeout: 8000,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      windowWidth: document.documentElement.clientWidth,
+      onclone: function (doc) {
+        const w = doc.getElementById('success-window'); if (w) w.style.display = 'block';
+        const c = doc.getElementById('regCard'); if (c) c.style.boxShadow = 'none';
+      }
+    }, over || {});
+    return html2canvas(card, opts);
+  }
+
+  // Reject empty/solid-colour canvases (what a "blank screenshot" really is).
+  function requireNonBlank(canvas) {
+    if (!canvas || !canvas.width || !canvas.height) throw new Error('empty canvas');
+    const t = document.createElement('canvas');
+    t.width = 32; t.height = 32;
+    const ctx = t.getContext('2d');
+    ctx.drawImage(canvas, 0, 0, 32, 32);
+    const d = ctx.getImageData(0, 0, 32, 32).data;
+    for (let i = 4; i < d.length; i += 4) {
+      if (d[i] !== d[0] || d[i + 1] !== d[1] || d[i + 2] !== d[2]) return canvas; // found variation
+    }
+    throw new Error('blank canvas');
+  }
+
+  // Last resort: draw the card with plain Canvas 2D.
+  function drawCardCanvas() {
+    const S = 2, W = 480, P = 22, GREEN = '#21593F', MID = '#287a4a';
+    const rows = [];
+    document.querySelectorAll('#regCard .card-table tr').forEach(function (tr) {
+      const l = tr.querySelector('.label-col'), v = tr.querySelector('.val-col');
+      if (l && v) rows.push([l.textContent.trim(), v.textContent.trim()]);
     });
+    const regId = document.getElementById('disp-regId').textContent.trim();
+    const verseEl = document.querySelector('#regCard .meet-note');
+    const verse = verseEl ? verseEl.textContent.trim() : '';
+    const font = function (px, bold) { return (bold ? 'bold ' : '') + px + 'px Arial, sans-serif'; };
+
+    function wrap(ctx, text, maxW) {
+      const words = String(text).split(/\s+/), lines = [];
+      let line = '';
+      words.forEach(function (w) {
+        const t = line ? line + ' ' + w : w;
+        if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else { line = t; }
+      });
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    // One routine used twice: draw=false measures the height, draw=true paints.
+    function paint(ctx, draw) {
+      ctx.textBaseline = 'alphabetic';
+      if (draw) { ctx.fillStyle = MID; ctx.fillRect(0, 0, W, 40); }
+      ctx.textAlign = 'center'; ctx.font = font(15, true);
+      if (draw) { ctx.fillStyle = '#fff'; ctx.fillText('Digital Registration Card', W / 2, 25); }
+      let y = 66;
+      ctx.font = font(11, true);
+      if (draw) { ctx.fillStyle = '#555'; ctx.fillText('REGISTRATION ID', W / 2, y); }
+      y += 28;
+      ctx.font = font(24, true);
+      if (draw) { ctx.fillStyle = GREEN; ctx.fillText(regId, W / 2, y); }
+      y += 16;
+      if (draw) { ctx.strokeStyle = '#ccd9d1'; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(P, y); ctx.lineTo(W - P, y); ctx.stroke(); ctx.setLineDash([]); }
+      y += 10;
+      rows.forEach(function (r) {
+        ctx.font = font(13, true);
+        const lines = wrap(ctx, r[1], W - P * 2 - 110);
+        if (draw) {
+          ctx.textAlign = 'left'; ctx.font = font(13, false); ctx.fillStyle = '#555'; ctx.fillText(r[0], P, y + 14);
+          ctx.textAlign = 'right'; ctx.font = font(13, true); ctx.fillStyle = '#111';
+          lines.forEach(function (ln, i) { ctx.fillText(ln, W - P, y + 14 + i * 17); });
+        }
+        y += lines.length * 17 + 9;
+      });
+      y += 4;
+      if (draw) { ctx.strokeStyle = '#ccd9d1'; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(P, y); ctx.lineTo(W - P, y); ctx.stroke(); ctx.setLineDash([]); }
+      y += 22;
+      ctx.textAlign = 'center'; ctx.font = font(12, true);
+      if (draw) { ctx.fillStyle = '#1a73e8'; ctx.fillText('Jazakallah Khayer', W / 2, y); }
+      y += 8;
+      ctx.font = font(10, false);
+      wrap(ctx, verse, W - P * 2).forEach(function (ln) {
+        y += 14;
+        if (draw) { ctx.fillStyle = '#777'; ctx.fillText(ln, W / 2, y); }
+      });
+      return y + P;
+    }
+
+    const probe = document.createElement('canvas').getContext('2d');
+    const H = Math.ceil(paint(probe, false));
+    const canvas = document.createElement('canvas');
+    canvas.width = W * S; canvas.height = H * S;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(S, S);
+    ctx.fillStyle = '#f7faf8'; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = MID; ctx.lineWidth = 2; ctx.strokeRect(1, 1, W - 2, H - 2);
+    paint(ctx, true);
+    return canvas;
+  }
+
+  // Deliver the PNG: download where it works, long-press overlay where it does not.
+  function deliverCanvas(canvas) {
+    return new Promise(function (resolve) {
+      const regId = document.getElementById('disp-regId').innerText || 'RegistrationCard';
+      const ua = navigator.userAgent;
+      const inApp = /FBAN|FBAV|Instagram|Messenger|Line\/|MicroMessenger|; wv\)/i.test(ua);
+      const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      const viaOverlay = function () { showShot(canvas.toDataURL('image/png')); resolve(); };
+      if (!canvas.toBlob) return viaOverlay();
+
+      canvas.toBlob(function (blob) {
+        if (!blob) return viaOverlay();
+        if (inApp || ios) {                       // downloads are unreliable here
+          showShot(URL.createObjectURL(blob));
+          return resolve();
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'reg_card_' + regId + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
+        resolve();
+      }, 'image/png');
+    });
+  }
+
+  function showShot(src) {
+    document.getElementById('shot-img').src = src;
+    document.getElementById('shot-overlay').style.display = 'flex';
+  }
+  function closeShot() {
+    document.getElementById('shot-overlay').style.display = 'none';
   }
 </script>
 
