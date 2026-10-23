@@ -12,7 +12,9 @@ A free, serverless registration system for the **DUET Freshers' Orientation & Re
 ## Features
 
 ### For students
-- Registration form: Email, Full Name, Department, Student ID, Phone (optional), Comment (optional)
+- Registration form: Email, Full Name, Department, Student ID, **Phone (required)**, Comment (optional)
+- **Student ID is numbers only** (6 to 10 digits by default); letters and symbols are removed as you type
+- **Phone number is required** and must be 11 digits (`01XXXXXXXXX`)
 - Live **remaining slots** counter (on the form and on the status page)
 - Instant **Digital Registration Card** with a unique Registration ID (`DUETSHIBIR-0001`, ...)
 - **Print / Save PDF** and **Screenshot (PNG)** buttons, with fallbacks for iOS and in-app browsers (Facebook/Messenger)
@@ -35,6 +37,7 @@ A free, serverless registration system for the **DUET Freshers' Orientation & Re
 - Formula-injection protection for text written into the Sheet
 - Generic error messages for rejected requests (details go only to the Executions log)
 - Status check does not reveal who is registered unless **both** Email and Student ID are correct
+- All validation is repeated on the server, so bypassing the browser checks does not help
 
 ---
 
@@ -59,6 +62,7 @@ Browser (index.html)
    ▼
 Google Apps Script (Code.gs)
    ├─ gate_()            key check -> client id/block list -> honeypot -> global limit
+   ├─ validate_()        email, name, department, Student ID (digits), phone (required)
    ├─ rate limits        per client / Student ID / Email (CacheService)
    ├─ Turnstile verify   Cloudflare siteverify
    ├─ O(1) index         PropertiesService (hashed Email/Student ID -> regId|row)
@@ -83,8 +87,8 @@ Key design points:
 | B | Email | stored lowercase |
 | C | Full Name | |
 | D | Department | CE, EEE, ME, CSE, TE, Arch, IPE, MME, ChE, FE |
-| E | Student ID | stored uppercase |
-| F | Phone | optional, `01XXXXXXXXX` |
+| E | Student ID | digits only |
+| F | Phone | required, `01XXXXXXXXX` |
 | G | Comment | optional |
 | H | Reg ID | `DUETSHIBIR-0001`, ... |
 | I | Card Sent | empty = pending, `Sent <time>`, or `ERROR: ...` |
@@ -139,16 +143,18 @@ const API_KEY = "<same value as SHARED_SECRET in Code.gs>";
 const TURNSTILE_SITE_KEY = "<your Turnstile site key>";   // or leave the placeholder to disable
 ```
 
-Also tighten the Student ID pattern in **both** files so they match:
+The Student ID rule must be **identical** in both files:
 
 ```js
 // index.html
-const STUDENT_ID_RE = /^[A-Za-z0-9][A-Za-z0-9\-]{3,19}$/;
+const STUDENT_ID_RE = /^[0-9]{6,10}$/;
 // Code.gs
-const STUDENT_ID_PATTERN = /^[A-Z0-9][A-Z0-9\-]{3,19}$/;
+const STUDENT_ID_PATTERN = /^[0-9]{6,10}$/;
 ```
 
-(If DUET IDs have a fixed format, for example 7 digits, use a strict pattern such as `/^\d{7}$/`. It is the best defence against bots that invent random IDs.)
+If DUET Student IDs have a fixed length (for example 7 digits), use `/^[0-9]{7}$/` in **both** files, and also change `maxlength="10"` on the two Student ID inputs and `.slice(0, 10)` in the digits-only listener to `7`. A strict pattern is the best defence against bots that invent random IDs.
+
+The phone rule (`01XXXXXXXXX`, required) is `PHONE_RE` in `index.html` and inside `validate_()` in `Code.gs`.
 
 ### 7. Host the frontend
 Upload `index.html` to GitHub Pages, Netlify, Cloudflare Pages, or any static host. Update the event date, time and venue in the HTML (and in `Code.gs` for the email card).
@@ -163,7 +169,7 @@ Upload `index.html` to GitHub Pages, Netlify, Cloudflare Pages, or any static ho
 | `SHEET_NAME` | `duetshibir` | Tab name |
 | `TOTAL_SLOTS` | `750` | Maximum registrations |
 | `DEPARTMENTS` | 10 departments | Allowed department values |
-| `STUDENT_ID_PATTERN` | `^[A-Z0-9][A-Z0-9\-]{3,19}$` | Student ID format |
+| `STUDENT_ID_PATTERN` | `^[0-9]{6,10}$` | Student ID format (digits only) |
 | `SHARED_SECRET` | `CHANGE_ME...` | Must equal `API_KEY` in `index.html` |
 | `ALLOWED_HOSTNAMES` | `[]` | Restrict Turnstile tokens to your site |
 | `MAX_BODY_CHARS` | `4000` | Reject oversized requests |
@@ -198,10 +204,12 @@ Sent as `text/plain` (avoids a CORS preflight that Apps Script cannot answer).
 ```json
 {
   "email": "...", "fullName": "...", "department": "CSE",
-  "studentId": "...", "phoneNumber": "01XXXXXXXXX", "comment": "...",
+  "studentId": "1234567", "phoneNumber": "01XXXXXXXXX", "comment": "...",
   "key": "<API_KEY>", "cid": "<client id>", "ts": "<turnstile token>", "hp_check": ""
 }
 ```
+
+`email`, `fullName`, `department`, `studentId` and `phoneNumber` are required. `comment` is optional.
 
 Responses:
 - New registration: `{ "success": true, "regId": "DUETSHIBIR-0001", "remainingSlots": 749 }`
@@ -265,6 +273,8 @@ Responses:
 | Cards not emailed | Run `cardStatus()`; check the quota, authorization, and that `setupCardSender()` was run |
 | Blank screenshot | The app falls back automatically; on iOS / in-app browsers press and hold the image to save, or use Print / Save PDF |
 | Status check says "No registration found" | Email and Student ID must belong to the **same** registration |
+| "Please enter a valid Student ID (numbers only)" | The ID must be digits only and within the allowed length |
+| "Please enter a valid 11-digit phone number" | Phone is required and must look like `01XXXXXXXXX` |
 
 ---
 
@@ -274,6 +284,7 @@ Responses:
 - Script Properties limit: 500 KB total. About 750 registrations use roughly 100 KB, which is well within the limit.
 - Rate limiting uses `CacheService` (approximate, not atomic). It is fine for abuse throttling, not for exact accounting.
 - Update-mode is off by default. Re-submitting with the same Email + Student ID only returns the existing card. To allow edits, list fields in `UPDATABLE_FIELDS`, for example `["fullName", "phoneNumber"]`.
+- If some students registered **before** the phone and Student ID rules changed, their rows may have an empty phone or a Student ID with letters. They stay in the Sheet, but a Student ID with letters will no longer pass the status check. Fix those rows by hand and run `rebuildIndex()`.
 - Do not hard-code real secrets (`SHARED_SECRET`, `TURNSTILE_SECRET`) in a public repository. Keep `TURNSTILE_SECRET` in Script Properties only, and use placeholders in the committed files.
 
 ---
